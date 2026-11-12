@@ -1,18 +1,13 @@
 const express = require("express");
+const usuariosRoutes = require("./routes/usuarios.routes");
 const videojuegosRoutes = require("./routes/videojuegos.routes");
 
-const PORT = 5000;
-const api = express();
+const app = express();
+app.use(express.json());
 
-api.use(express.json());
-api.use(express.static("public"));
+app.use("/api/usuarios", usuariosRoutes); 
+app.use("/api/videojuegos", videojuegosRoutes); 
 
-api.use("/api/videojuegos", videojuegosRoutes);
-
-api.get("/", (req, res) => {
-    res.json({ mensaje: "¡El servidor de la API está activo y funcionando correctamente!" });
-});
-
-api.listen(PORT, () => {
-    console.log(`Server running in http://localhost:${PORT}`);
+app.listen(5000, () => {
+    console.log("Servidor corriendo en http://localhost:5000");
 });
