@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sistema de la USB Bogotá</title>
+</head>
+<body>
+
+<h1>Sistema de la USB Bogotá</h1>
+
+<section id="sincronizacion">
+  <h2>Sincronización con Firestore</h2>
+  <form id="form-sincronizar">
+    <label>Periodo: <input type="text" id="sync-periodo"></label>
+    <button type="submit">Sincronizar con Firestore</button>
+  </form>
+  <p id="sync-mensaje"></p>
+</section>
+
+<hr>
+
+<section id="oferta">
+  <h2>Oferta de clases</h2>
+
+  <form id="form-oferta">
+    <label>Dependencia: <input type="text" id="oferta-dependencia"></label>
+    <label>Periodo: <input type="text" id="oferta-periodo"></label>
+    <button type="submit">Consultar</button>
+  </form>
+
+  <table border="1">
+    <thead>
+      <tr><th>Id del grupo</th><th>Asignatura</th><th>Ofrecida por</th><th>Grupo</th><th>Profesor</th><th>Cupo</th><th>Inscritos</th></tr>
+    </thead>
+    <tbody id="tabla-oferta"></tbody>
+  </table>
+
+  <h3>Inscribir a un estudiante</h3>
+  <form id="form-inscripcion">
+    <label>Código del estudiante: <input type="text" id="inscripcion-codigo"></label>
+    <label>Id del grupo: <input type="text" id="inscripcion-grupo"></label>
+    <button type="submit">Inscribir</button>
+  </form>
+  <p id="inscripcion-mensaje"></p>
+</section>
+
+</body>
+</html>
