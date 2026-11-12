@@ -3,6 +3,51 @@
 <head>
 <meta charset="UTF-8">
 <title>Sistema de la USB Bogotá</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+    margin: 2rem auto;
+    max-width: 1000px;
+    padding: 0 1rem;
+  }
+
+  form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 1rem 0;
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  input,
+  button {
+    font: inherit;
+    padding: 0.4rem;
+  }
+
+  table {
+    border-collapse: collapse;
+    margin: 1rem 0;
+    width: 100%;
+  }
+
+  th,
+  td {
+    padding: 0.5rem;
+    text-align: left;
+  }
+
+  #sync-mensaje,
+  #inscripcion-mensaje {
+    min-height: 1.5rem;
+  }
+</style>
 </head>
 <body>
 
@@ -43,6 +88,174 @@
   </form>
   <p id="inscripcion-mensaje"></p>
 </section>
+
+<script>
+  (() => {
+    const synchronizationFormElement = document.getElementById("form-sincronizar");
+    const synchronizationPeriodInput = document.getElementById("sync-periodo");
+    const synchronizationMessageElement = document.getElementById("sync-mensaje");
+    const offerFormElement = document.getElementById("form-oferta");
+    const offerDepartmentInput = document.getElementById("oferta-dependencia");
+    const offerPeriodInput = document.getElementById("oferta-periodo");
+    const offerTableBodyElement = document.getElementById("tabla-oferta");
+    const enrollmentFormElement = document.getElementById("form-inscripcion");
+    const enrollmentStudentCodeInput = document.getElementById("inscripcion-codigo");
+    const enrollmentGroupIdInput = document.getElementById("inscripcion-grupo");
+    const enrollmentMessageElement = document.getElementById("inscripcion-mensaje");
+
+    async function handleSynchronizationSubmit(synchronizationSubmitEvent) {
+      synchronizationSubmitEvent.preventDefault();
+      const synchronizationPeriodValue = synchronizationPeriodInput.value.trim();
+
+      if (!synchronizationPeriodValue) {
+        synchronizationMessageElement.textContent = "Ingresa un periodo.";
+        return;
+      }
+
+      synchronizationMessageElement.textContent = "Sincronizando...";
+
+      try {
+        const synchronizationResponse = await fetch(
+          `/sync/oferta/${encodeURIComponent(synchronizationPeriodValue)}`,
+          { method: "POST" }
+        );
+        const synchronizationResult = await synchronizationResponse.json();
+
+        if (!synchronizationResponse.ok) {
+          synchronizationMessageElement.textContent =
+            synchronizationResult.message || "No fue posible sincronizar la oferta.";
+          return;
+        }
+
+        synchronizationMessageElement.textContent =
+          synchronizationResult.message ||
+          `Se sincronizaron ${synchronizationResult.groupsSynced} grupos.`;
+      } catch (synchronizationError) {
+        synchronizationMessageElement.textContent =
+          "No fue posible conectar con el servidor para sincronizar.";
+      }
+    }
+
+    function showOfferTableMessage(messageText) {
+      const offerNoticeRow = document.createElement("tr");
+      const offerNoticeCell = document.createElement("td");
+
+      offerNoticeCell.colSpan = 7;
+      offerNoticeCell.textContent = messageText;
+      offerNoticeRow.append(offerNoticeCell);
+      offerTableBodyElement.replaceChildren(offerNoticeRow);
+    }
+
+    async function loadOfferTable() {
+      const offerDepartmentValue = offerDepartmentInput.value.trim();
+      const offerPeriodValue = offerPeriodInput.value.trim();
+
+      if (!offerDepartmentValue || !offerPeriodValue) {
+        showOfferTableMessage("Ingresa una dependencia y un periodo para consultar.");
+        return;
+      }
+
+      offerTableBodyElement.replaceChildren();
+
+      try {
+        const offerQueryParameters = new URLSearchParams({
+          dependencia: offerDepartmentValue,
+          periodo: offerPeriodValue,
+        });
+        const offerResponse = await fetch(`/oferta?${offerQueryParameters.toString()}`);
+        const offerResponseData = await offerResponse.json();
+
+        if (!offerResponse.ok) {
+          showOfferTableMessage(
+            offerResponseData.message || "No fue posible consultar la oferta."
+          );
+          return;
+        }
+
+        if (!Array.isArray(offerResponseData) || offerResponseData.length === 0) {
+          showOfferTableMessage("No se encontraron grupos para esos filtros.");
+          return;
+        }
+
+        for (const offerRecord of offerResponseData) {
+          const offerDataRow = document.createElement("tr");
+          const offerColumnValues = [
+            offerRecord.groupId,
+            offerRecord.subjectName,
+            offerRecord.departmentName,
+            offerRecord.groupNumber,
+            offerRecord.professorName,
+            offerRecord.capacity,
+            offerRecord.enrolledCount,
+          ];
+
+          for (const offerColumnValue of offerColumnValues) {
+            const offerDataCell = document.createElement("td");
+            offerDataCell.textContent =
+              offerColumnValue === null || offerColumnValue === undefined
+                ? ""
+                : String(offerColumnValue);
+            offerDataRow.append(offerDataCell);
+          }
+
+          offerTableBodyElement.append(offerDataRow);
+        }
+      } catch (offerQueryError) {
+        showOfferTableMessage(
+          "No fue posible conectar con el servidor para consultar la oferta."
+        );
+      }
+    }
+
+    async function handleOfferSubmit(offerSubmitEvent) {
+      offerSubmitEvent.preventDefault();
+      await loadOfferTable();
+    }
+
+    async function handleEnrollmentSubmit(enrollmentSubmitEvent) {
+      enrollmentSubmitEvent.preventDefault();
+      const enrollmentStudentCodeValue = enrollmentStudentCodeInput.value.trim();
+      const enrollmentGroupIdValue = enrollmentGroupIdInput.value.trim();
+
+      if (!enrollmentStudentCodeValue || !enrollmentGroupIdValue) {
+        enrollmentMessageElement.textContent =
+          "Ingresa el código del estudiante y el id del grupo.";
+        return;
+      }
+
+      enrollmentMessageElement.textContent = "Procesando inscripción...";
+
+      try {
+        const enrollmentResponse = await fetch("/inscripcion", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentCode: enrollmentStudentCodeValue,
+            groupId: enrollmentGroupIdValue,
+          }),
+        });
+        const enrollmentResponseData = await enrollmentResponse.json();
+
+        if (!enrollmentResponse.ok) {
+          enrollmentMessageElement.textContent =
+            enrollmentResponseData.message || "No fue posible completar la inscripción.";
+          return;
+        }
+
+        enrollmentMessageElement.textContent =
+          enrollmentResponseData.message || "Inscripción exitosa.";
+        await loadOfferTable();
+      } catch (enrollmentRequestError) {
+        enrollmentMessageElement.textContent =
+          "No fue posible conectar con el servidor para inscribir al estudiante.";
+      }
+    }
+
+    synchronizationFormElement.addEventListener("submit", handleSynchronizationSubmit);
+    offerFormElement.addEventListener("submit", handleOfferSubmit);
+    enrollmentFormElement.addEventListener("submit", handleEnrollmentSubmit);
+  })();
+</script>
 
 </body>
 </html>
